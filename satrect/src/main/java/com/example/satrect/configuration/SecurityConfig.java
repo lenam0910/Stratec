@@ -31,6 +31,7 @@ public class SecurityConfig {
         http.csrf(AbstractHttpConfigurer::disable);
         http.authorizeHttpRequests(request -> request
                 .requestMatchers("/img/**").permitAll()
+                .requestMatchers(HttpMethod.POST, "/auth/register").permitAll()
                 .requestMatchers("/api/v1/feedback/**").permitAll()
                 .anyRequest().authenticated());
         // http.httpBasic(Customizer.withDefaults());

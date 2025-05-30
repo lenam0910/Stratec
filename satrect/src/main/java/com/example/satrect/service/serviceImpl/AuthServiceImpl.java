@@ -12,6 +12,7 @@ import com.example.satrect.dto.request.UsersRequest;
 import com.example.satrect.dto.response.LoginResponse;
 import com.example.satrect.dto.response.UserResponse;
 import com.example.satrect.entity.Users;
+import com.example.satrect.mapper.UserMapper;
 import com.example.satrect.repository.UserRepository;
 import com.example.satrect.service.AuthService;
 
@@ -26,6 +27,7 @@ public class AuthServiceImpl implements AuthService {
     UserRepository userRepository;
     JwtServiceImpl jwtService;
     AuthenticationManager authenticationManager;
+    UserMapper userMapper;
 
     @Override
     public LoginResponse login(LoginRequest loginRequest) {
@@ -55,6 +57,13 @@ public class AuthServiceImpl implements AuthService {
         } catch (org.springframework.security.authentication.BadCredentialsException e) {
             throw new UnsupportedOperationException("unauthenticated");
         }
+    }
+
+    @Override
+    public UserResponse register(UsersRequest request) {
+        Users user = userMapper.toUsers(request);
+        userRepository.save(user);
+        return userMapper.toUserResponse(user);
     }
 
 }

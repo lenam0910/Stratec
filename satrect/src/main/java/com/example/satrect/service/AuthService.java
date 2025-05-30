@@ -12,4 +12,6 @@ public interface AuthService {
     LoginResponse login(LoginRequest loginRequest);
 
     UserResponse logout(User user);
+
+    UserResponse register(UsersRequest request);
 }
