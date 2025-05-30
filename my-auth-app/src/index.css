@@ -174,3 +174,138 @@ button:hover {
 .error {
   color: red;
 }
+
+.form-container {
+  width: 100%;
+}
+
+.form-group {
+  margin-bottom: 1rem;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 0.5rem;
+  font-weight: bold;
+}
+
+.form-group input {
+  width: 100%;
+  padding: 0.5rem;
+  border: 1px solid #ccc;
+  border-radius: 0.25rem;
+}
+
+.preview {
+  margin: 1rem 0;
+}
+
+.preview img {
+  max-width: 300px;
+}
+
+.upload-button,
+.back-button {
+  width: 100%;
+  padding: 0.5rem;
+  border-radius: 0.25rem;
+  color: white;
+}
+
+.upload-button {
+  background-color: #3b82f6;
+}
+
+.upload-button:hover {
+  background-color: #2563eb;
+}
+
+.back-button {
+  background-color: #6b7280;
+}
+
+.back-button:hover {
+  background-color: #4b5563;
+}
+
+.success {
+  color: #10b981;
+  margin-top: 0.5rem;
+  text-align: center;
+}
+
+.error {
+  color: #ef4444;
+  margin-top: 0.5rem;
+  text-align: center;
+}
+
+.form-container {
+  width: 100%;
+}
+
+.form-group {
+  margin-bottom: 1rem;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 0.5rem;
+  font-weight: bold;
+}
+
+.form-group input {
+  width: 100%;
+  padding: 0.5rem;
+  border: 1px solid #ccc;
+  border-radius: 0.25rem;
+}
+
+.preview {
+  margin: 1rem 0;
+}
+
+.preview img {
+  max-width: 300px;
+}
+
+.upload-button,
+.back-button {
+  width: 100%;
+  padding: 0.5rem;
+  border-radius: 0.25rem;
+  color: white;
+}
+
+.upload-button {
+  background-color: #3b82f6;
+}
+
+.upload-button:hover {
+  background-color: #2563eb;
+}
+
+.back-button {
+  background-color: #6b7280;
+}
+
+.back-button:hover {
+  background-color: #4b5563;
+}
+
+.success {
+  color: #10b981;
+  margin-top: 0.5rem;
+  text-align: center;
+}
+
+.error {
+  color: #ef4444;
+  margin-top: 0.5rem;
+  text-align: center;
+}
+
+button:disabled {
+  background-color: #9ca3af;
+  cursor: not-allowed;
+}
