@@ -13,10 +13,10 @@ import lombok.experimental.FieldDefaults;
 @FieldDefaults(level = lombok.AccessLevel.PRIVATE)
 
 public class ImageResponse {
-    String imageId;
-    String imageKey;
+    String image_id;
+    String image_key;
     String name;
     String status;
-    String createdAt;
-    String updatedAt;
+    String created_at;
+    String updated_at;
 }

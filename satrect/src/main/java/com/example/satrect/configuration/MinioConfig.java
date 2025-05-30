@@ -4,6 +4,8 @@ import io.minio.BucketExistsArgs;
 import io.minio.MakeBucketArgs;
 import io.minio.MinioClient;
 import io.minio.errors.*;
+import lombok.Data;
+
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -13,6 +15,7 @@ import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 
 @Configuration
+@Data
 public class MinioConfig {
 
     @Value("${minio.url}")
@@ -25,10 +28,12 @@ public class MinioConfig {
     private String minio_secretKey;
 
     @Value("${minio.bucket}")
-    private String bucketName;
+    public String bucketName;
 
     @Bean
-    MinioClient minioClient() throws ServerException, InsufficientDataException, ErrorResponseException, IOException, NoSuchAlgorithmException, InvalidKeyException, InvalidResponseException, XmlParserException, InternalException {
+    MinioClient minioClient() throws ServerException, InsufficientDataException, ErrorResponseException, IOException,
+            NoSuchAlgorithmException, InvalidKeyException, InvalidResponseException, XmlParserException,
+            InternalException {
         MinioClient minioClient = MinioClient.builder()
                 .endpoint(minio_url)
                 .credentials(minio_accessKey, minio_secretKey)

@@ -1,7 +1,7 @@
 # Cấu hình kết nối PostgreSQL
 spring:
     datasource:
-        url: jdbc:postgresql://localhost:5432/stratec
+        url: jdbc:postgresql://localhost:5432/satrect
         username: postgres
         password: 123456
         driver-class-name: org.postgresql.Driver
@@ -18,6 +18,6 @@ jwt:
 
 minio:
     url: http://localhost:9000
-    access-key: minioadmin
+    access-key: minio
     secret-key: minio123
     bucket: image-stratec

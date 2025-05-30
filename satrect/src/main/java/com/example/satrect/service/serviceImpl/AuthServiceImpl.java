@@ -5,6 +5,8 @@ import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import com.example.satrect.dto.request.LoginRequest;
@@ -16,18 +18,17 @@ import com.example.satrect.mapper.UserMapper;
 import com.example.satrect.repository.UserRepository;
 import com.example.satrect.service.AuthService;
 
-import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
-import lombok.experimental.FieldDefaults;
 
 @Service
 @RequiredArgsConstructor
-@FieldDefaults(level = AccessLevel.PRIVATE)
 public class AuthServiceImpl implements AuthService {
-    UserRepository userRepository;
-    JwtServiceImpl jwtService;
-    AuthenticationManager authenticationManager;
-    UserMapper userMapper;
+
+    private final UserRepository userRepository;
+    private final JwtServiceImpl jwtService;
+    private final AuthenticationManager authenticationManager;
+    private final UserMapper userMapper;
+    private final PasswordEncoder encoder;
 
     @Override
     public LoginResponse login(LoginRequest loginRequest) {
@@ -62,6 +63,8 @@ public class AuthServiceImpl implements AuthService {
     @Override
     public UserResponse register(UsersRequest request) {
         Users user = userMapper.toUsers(request);
+
+        user.setPassword(encoder.encode(user.getPassword()));
         userRepository.save(user);
         return userMapper.toUserResponse(user);
     }
