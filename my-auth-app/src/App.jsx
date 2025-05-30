@@ -11,14 +11,7 @@ function App() {
       {page === 'login' && <Login setPage={setPage} />}
       {page === 'register' && <Register setPage={setPage} />}
       {page === 'upload' && <ImageUpload setPage={setPage} />}
-      {page !== 'upload' && (
-        <button
-          onClick={() => setPage('upload')}
-          className="nav-button"
-        >
-          Tải Lên Hình Ảnh
-        </button>
-      )}
+
     </div>
   )
 }
