@@ -1,22 +1,21 @@
 package com.example.satrect.service.serviceImpl;
 
+import java.io.InputStream;
 import java.time.LocalDateTime;
-
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
-
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import com.example.satrect.configuration.MinioConfig;
-import com.example.satrect.dto.request.ImageRequest;
 import com.example.satrect.dto.response.ImageResponse;
 import com.example.satrect.entity.Image;
 import com.example.satrect.mapper.ImageMapper;
 import com.example.satrect.repository.ImageRepository;
 import com.example.satrect.service.ImageService;
-
 import io.minio.MinioClient;
 import io.minio.PutObjectArgs;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
+import io.minio.GetObjectArgs;
+import java.util.Base64;
 
 @Service
 @RequiredArgsConstructor
@@ -31,7 +30,6 @@ public class ImageServiceImpl implements ImageService {
     @Override
     public ImageResponse postImage(MultipartFile imagePath, String imageName) {
         String originalFilename = imagePath.getOriginalFilename();
-
         String uniqueImageId = originalFilename + "_" + System.currentTimeMillis();
 
         log.info("Image ID: {}", uniqueImageId);
@@ -47,44 +45,46 @@ public class ImageServiceImpl implements ImageService {
             client.putObject(
                     PutObjectArgs.builder()
                             .bucket(minioConfig.getBucketName())
-                            .object(originalFilename)
+                            .object(uniqueImageId) // Lưu với uniqueImageId
                             .stream(imagePath.getInputStream(), imagePath.getSize(), -1)
                             .contentType(imagePath.getContentType())
                             .build());
 
             image.setImage_key(imageName);
         } catch (Exception e) {
-            log.info("Error uploading to MinIO: {}", e.getMessage());
-            throw new RuntimeException("Failed to upload image to MinIO", e);
+            log.error("Lỗi khi tải ảnh lên MinIO: {}", e.getMessage());
+            throw new RuntimeException("Không thể tải ảnh lên MinIO", e);
         }
 
         imageRepository.save(image);
-        log.info("Image Detail: {}", image.toString());
+        log.info("Chi tiết ảnh: {}", image.toString());
         return imageMapper.toImageResponse(image);
     }
 
     @Override
     public ImageResponse getImageById(String imageId) {
+        // Tìm ảnh trong database
         Image image = imageRepository.findById(imageId)
-                .orElseThrow(() -> new RuntimeException("Image not found with id: " + imageId));
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy ảnh với id: " + imageId));
 
-        String objectName = minioConfig.getBucketName();
-        String url;
+        String imageDataBase64;
         try {
-            url = client.getPresignedObjectUrl(
-                    io.minio.GetPresignedObjectUrlArgs.builder()
-                            .method(io.minio.http.Method.GET)
+            // Tải ảnh từ MinIO
+            try (InputStream inputStream = client.getObject(
+                    GetObjectArgs.builder()
                             .bucket(minioConfig.getBucketName())
-                            .object(objectName)
-                            .expiry(60 * 60)
-                            .build());
+                            .object(imageId)
+                            .build())) {
+                byte[] imageBytes = inputStream.readAllBytes();
+                imageDataBase64 = Base64.getEncoder().encodeToString(imageBytes);
+            }
         } catch (Exception e) {
-            log.error("Error generating presigned URL: {}", e.getMessage());
-            throw new RuntimeException("Failed to generate image URL", e);
+            log.error("Lỗi khi tải ảnh từ MinIO: {}", e.getMessage());
+            throw new RuntimeException("Không thể tải ảnh từ MinIO", e);
         }
 
         ImageResponse response = imageMapper.toImageResponse(image);
+        response.setImageData(imageDataBase64);
         return response;
     }
-
 }

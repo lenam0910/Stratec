@@ -37,11 +37,11 @@ public class SecurityConfig {
                 .sessionManagement(session -> session
                         .sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(request -> request
-                        .requestMatchers("/img/**", "/auth/**").permitAll()
+                        .requestMatchers("/img/**", "/auth/**", "logout").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/**").permitAll()
                         .requestMatchers(HttpMethod.POST, "/auth/register", "/auth/login", "/auth/login-cookie")
                         .permitAll()
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll() // Cho phép OPTIONS (preflight)
-                        .requestMatchers("/api/v1/feedback/**").permitAll()
                         .anyRequest().authenticated());
 
         http.authenticationProvider(authenticationProvider());

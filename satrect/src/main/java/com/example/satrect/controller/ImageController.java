@@ -2,6 +2,7 @@ package com.example.satrect.controller;
 
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.multipart.MultipartFile;
 import lombok.RequiredArgsConstructor;
@@ -15,6 +16,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 
 @RestController
 @RequiredArgsConstructor
+@RequestMapping("img")
 public class ImageController {
     private final ImageService imageService;
 
@@ -30,7 +32,7 @@ public class ImageController {
     }
 
     @GetMapping("{id}")
-    public ApiResponse<Object> getImage(@PathVariable String image_id) {
+    public ApiResponse<Object> getImage(@PathVariable("id") String image_id) {
         ImageResponse imageResponse = imageService.getImageById(image_id);
         return ApiResponse.builder()
                 .code(1000)

@@ -19,4 +19,5 @@ public class ImageResponse {
     String status;
     String created_at;
     String updated_at;
+    String imageData;
 }
