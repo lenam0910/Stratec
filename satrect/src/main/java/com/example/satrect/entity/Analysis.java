@@ -24,6 +24,7 @@ public class Analysis {
     String success_callback_url;
     String failure_callback_url;
 
+
     @OneToOne
     @JoinColumn(name = "image_id", referencedColumnName = "image_id")
     Image image;
