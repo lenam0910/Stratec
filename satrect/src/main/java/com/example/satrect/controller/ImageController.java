@@ -1,5 +1,7 @@
 package com.example.satrect.controller;
 
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -11,6 +13,10 @@ import com.example.satrect.dto.response.ApiResponse;
 import com.example.satrect.dto.response.ImageResponse;
 import com.example.satrect.service.ImageService;
 import com.example.satrect.utils.Notification;
+
+import java.util.ArrayList;
+import java.util.List;
+
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 
@@ -38,6 +44,15 @@ public class ImageController {
                 .code(1000)
                 .data(imageResponse)
                 .message(Notification.GET_IMAGE_SUCCESS)
+                .build();
+    }
+
+    @GetMapping
+    public ApiResponse<Object> getAllImages() {
+        return ApiResponse.builder()
+                .code(1000)
+                .message("Get all images")
+                .data(imageService.getAllImages())
                 .build();
     }
 

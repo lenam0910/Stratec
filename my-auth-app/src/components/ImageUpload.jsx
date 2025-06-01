@@ -5,10 +5,10 @@ function ImageUpload({ setPage }) {
     const [image, setImage] = useState(null);
     const [imageName, setImageName] = useState('');
     const [uploadStatus, setUploadStatus] = useState('');
-    const [searchImageId, setSearchImageId] = useState(''); // State cho ID ảnh cần tìm
-    const [searchedImage, setSearchedImage] = useState(''); // State cho dữ liệu ảnh tìm được
-    const [searchStatus, setSearchStatus] = useState(''); // State cho trạng thái tìm kiếm
-    const [loading, setLoading] = useState(false); // State cho trạng thái tải
+    const [searchImageId, setSearchImageId] = useState('');
+    const [searchedImage, setSearchedImage] = useState('');
+    const [searchStatus, setSearchStatus] = useState('');
+    const [loading, setLoading] = useState(false);
 
     // Xử lý chọn file ảnh để tải lên
     const handleImageChange = (e) => {
@@ -37,17 +37,17 @@ function ImageUpload({ setPage }) {
         formData.append('imageName', imageName);
 
         try {
-            console.log('Sending request to: http://localhost:8080/upload-image');
-            const response = await axios.post('http://localhost:8080/upload-image', formData, {
+            console.log('Sending request to: http://localhost:8080/img/upload-image');
+            const response = await axios.post('http://localhost:8080/img/upload-image', formData, {
                 headers: {
                     'Content-Type': 'multipart/form-data',
                 },
-                withCredentials: true, // Gửi cookie
+                withCredentials: true,
             });
             console.log('Response status:', response.status);
             console.log('Response data:', response.data);
             if (response.status === 200 && response.data.code === 1000) {
-                setUploadStatus('Tải lên thành công!');
+                setUploadStatus('Tải lên thành công! Xem danh sách ảnh để kiểm tra.');
             } else {
                 setUploadStatus(`Lỗi: ${response.data.message || 'Tải lên thất bại.'}`);
             }
@@ -63,7 +63,6 @@ function ImageUpload({ setPage }) {
     };
 
     // Xử lý tìm kiếm ảnh theo ID
-    // Trong ImageUpload.js
     const handleSearch = async () => {
         if (!searchImageId) {
             setSearchStatus('Vui lòng nhập ID ảnh để tìm.');
@@ -82,13 +81,13 @@ function ImageUpload({ setPage }) {
                 setSearchStatus('Tìm ảnh thành công!');
             } else if (response.status === 403) {
                 setSearchStatus('Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.');
-                setTimeout(() => setPage('login'), 2000); // Chuyển về login sau 2 giây
+                setTimeout(() => setPage('login'), 2000);
             } else {
                 setSearchStatus(data.message || 'Không tìm thấy ảnh.');
             }
         } catch (error) {
             console.error('Error details:', error);
-            setSearchStatus('Lỗi: Không thể kết nối đến server.');
+            setSearchStatus('Lỗi sammen kết nối đến server.');
         } finally {
             setLoading(false);
         }
@@ -172,6 +171,17 @@ function ImageUpload({ setPage }) {
                         <img src={searchedImage} alt="Ảnh từ MinIO" style={{ maxWidth: '300px' }} />
                     </div>
                 )}
+
+                {/* Nút xem tất cả ảnh */}
+                <button
+                    onClick={() => {
+                        console.log('Nút Xem Tất Cả Ảnh được nhấn, chuyển sang imageList');
+                        setPage('imageList');
+                    }}
+                    className="w-full mt-4 bg-green-500 text-white p-2 rounded hover:bg-green-600 transition"
+                >
+                    Xem Tất Cả Ảnh
+                </button>
 
                 {/* Nút quay lại */}
                 <button

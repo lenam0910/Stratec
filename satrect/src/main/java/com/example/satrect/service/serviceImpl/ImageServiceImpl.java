@@ -2,6 +2,10 @@ package com.example.satrect.service.serviceImpl;
 
 import java.io.InputStream;
 import java.time.LocalDateTime;
+
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 import lombok.RequiredArgsConstructor;
@@ -15,7 +19,10 @@ import com.example.satrect.service.ImageService;
 import io.minio.MinioClient;
 import io.minio.PutObjectArgs;
 import io.minio.GetObjectArgs;
+
+import java.util.ArrayList;
 import java.util.Base64;
+import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -86,5 +93,37 @@ public class ImageServiceImpl implements ImageService {
         ImageResponse response = imageMapper.toImageResponse(image);
         response.setImageData(imageDataBase64);
         return response;
+    }
+
+
+
+    @Override
+    public List<ImageResponse> getAllImages() {
+        // Tìm tất cả ảnh trong database
+        List<Image> images = imageRepository.findAll();
+        List<ImageResponse> lstImgResponse = new ArrayList<>();
+        String imageDataBase64;
+
+        log.info("Số ảnh từ database: {}", images.size()); // Debug
+        for (var item : images) {
+            log.info("Xử lý ảnh, ID: {}", item.getImage_id()); // Debug
+            try {
+                try (InputStream inputStream = client.getObject(
+                        GetObjectArgs.builder()
+                                .bucket(minioConfig.getBucketName())
+                                .object(item.getImage_id())
+                                .build())) {
+                    byte[] imageBytes = inputStream.readAllBytes();
+                    imageDataBase64 = Base64.getEncoder().encodeToString(imageBytes);
+                }
+                ImageResponse response = imageMapper.toImageResponse(item);
+                response.setImageData(imageDataBase64);
+                lstImgResponse.add(response);
+            } catch (Exception e) {
+                log.error("Lỗi khi tải ảnh {} từ MinIO: {}", item.getImage_id(), e.getMessage());
+            }
+        }
+        log.info("Số ảnh trả về: {}", lstImgResponse.size()); // Debug
+        return lstImgResponse;
     }
 }
