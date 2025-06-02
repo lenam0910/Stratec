@@ -2,8 +2,17 @@ package com.example.satrect.service.serviceImpl;
 
 import java.io.InputStream;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.Base64;
+import java.util.List;
+import java.util.UUID;
 
-import io.minio.RestoreObjectArgs;
+import com.example.satrect.entity.Analysis;
+import com.example.satrect.entity.AnalysisResult;
+import com.example.satrect.repository.AnalysisRepository;
+import com.example.satrect.repository.AnalysisResultRepository;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
@@ -27,20 +36,19 @@ import io.minio.MinioClient;
 import io.minio.PutObjectArgs;
 import io.minio.GetObjectArgs;
 
-import java.util.ArrayList;
-import java.util.Base64;
-import java.util.List;
-
 @Service
 @RequiredArgsConstructor
 @Slf4j
 public class ImageServiceImpl implements ImageService {
 
     private final ImageRepository imageRepository;
+    private final AnalysisRepository analysisRepository;
+    private final AnalysisResultRepository analysisResultRepository;
     private final ImageMapper imageMapper;
     private final MinioConfig minioConfig;
     private final MinioClient client;
     private final RestTemplate restTemplate;
+    private final ObjectMapper objectMapper = new ObjectMapper();
 
     @Value("${gemini.api.key}")
     private String apiKey;
@@ -55,6 +63,7 @@ public class ImageServiceImpl implements ImageService {
 
         log.info("Image ID: {}", uniqueImageId);
 
+        // Tạo entity Image
         Image image = Image.builder()
                 .image_id(uniqueImageId)
                 .name(originalFilename)
@@ -67,19 +76,31 @@ public class ImageServiceImpl implements ImageService {
             client.putObject(
                     PutObjectArgs.builder()
                             .bucket(minioConfig.getBucketName())
-                            .object(uniqueImageId) // Lưu với uniqueImageId
+                            .object(uniqueImageId)
                             .stream(imagePath.getInputStream(), imagePath.getSize(), -1)
                             .contentType(imagePath.getContentType())
                             .build());
 
             image.setImage_key(imageName);
 
+            // Lưu image vào database trước để có image_id
+            imageRepository.save(image);
+
             // Gửi ảnh lên Gemini để phân tích
             String geminiResult = analyzeImageWithGemini(imagePath);
 
-            // Lưu kết quả phân tích (ví dụ set vào trường nào đó trong entity nếu cần)
+            // Parse và lưu kết quả phân tích
+            Analysis analysis = new Analysis();
+            analysis.setAnalysis_id(UUID.randomUUID().toString());
+            analysis.setImage(image);
+            analysisRepository.save(analysis);
+
+            List<AnalysisResult> results = parseGeminiResult(geminiResult, analysis);
+            analysisResultRepository.saveAll(results);
+
             image.setStatus("Analyzed");
-            // Bạn có thể thêm trường mới để lưu kết quả phân tích hoặc lưu ở chỗ khác
+            imageRepository.save(image);
+
             log.info("Gemini phân tích kết quả: {}", geminiResult);
 
         } catch (Exception e) {
@@ -87,33 +108,54 @@ public class ImageServiceImpl implements ImageService {
             throw new RuntimeException("Không thể tải ảnh lên MinIO hoặc phân tích Gemini", e);
         }
 
-        imageRepository.save(image);
         log.info("Chi tiết ảnh: {}", image.toString());
         return imageMapper.toImageResponse(image);
     }
 
     private String analyzeImageWithGemini(MultipartFile imageFile) {
         try {
+            // Thiết lập header
             HttpHeaders headers = new HttpHeaders();
-            headers.setContentType(MediaType.MULTIPART_FORM_DATA);
-            headers.set("Authorization", "Bearer " + apiKey);
+            headers.setContentType(MediaType.APPLICATION_JSON); // Gemini yêu cầu JSON
 
-            // Tạo body request với file Multipart
-            org.springframework.util.LinkedMultiValueMap<String, Object> body = new org.springframework.util.LinkedMultiValueMap<>();
-            // Gửi ảnh dưới dạng file multipart
-            body.add("image", new org.springframework.core.io.ByteArrayResource(imageFile.getBytes()) {
-                @Override
-                public String getFilename() {
-                    return imageFile.getOriginalFilename();
-                }
-            });
+            // Chuyển ảnh thành base64
+            String base64Image = Base64.getEncoder().encodeToString(imageFile.getBytes());
 
-            HttpEntity<org.springframework.util.MultiValueMap<String, Object>> requestEntity = new HttpEntity<>(body, headers);
+            // Tạo JSON body cho Gemini API
+            String jsonBody = String.format(
+                    "{" +
+                            "  \"contents\": [" +
+                            "    {" +
+                            "      \"parts\": [" +
+                            "        {" +
+                            "          \"text\": \"Describe this image and identify objects in it\"" +
+                            "        }," +
+                            "        {" +
+                            "          \"inlineData\": {" +
+                            "            \"mimeType\": \"%s\"," +
+                            "            \"data\": \"%s\"" +
+                            "          }" +
+                            "        }" +
+                            "      ]" +
+                            "    }" +
+                            "  ]" +
+                            "}",
+                    imageFile.getContentType(), base64Image
+            );
 
-            ResponseEntity<String> response = restTemplate.postForEntity(apiUrl, requestEntity, String.class);
+            // Tạo request entity
+            HttpEntity<String> requestEntity = new HttpEntity<>(jsonBody, headers);
+
+            // Thêm API key vào URL
+            String urlWithKey = apiUrl + "?key=" + apiKey;
+            log.info("Calling Gemini API at: {}", urlWithKey); // Log để debug
+
+            // Gửi request
+            ResponseEntity<String> response = restTemplate.postForEntity(urlWithKey, requestEntity, String.class);
 
             if (response.getStatusCode().is2xxSuccessful()) {
-                return response.getBody(); // Trả về kết quả phân tích dưới dạng JSON string hoặc tuỳ API
+                log.info("Gemini API response: {}", response.getBody());
+                return response.getBody();
             } else {
                 throw new RuntimeException("Lỗi phản hồi từ Gemini: " + response.getStatusCode());
             }
@@ -121,6 +163,40 @@ public class ImageServiceImpl implements ImageService {
             log.error("Lỗi khi gọi API Gemini: {}", e.getMessage());
             throw new RuntimeException("Không thể phân tích ảnh với Gemini", e);
         }
+    }
+
+    private List<AnalysisResult> parseGeminiResult(String geminiResult, Analysis analysis) throws Exception {
+        List<AnalysisResult> results = new ArrayList<>();
+        JsonNode rootNode = objectMapper.readTree(geminiResult);
+
+        // Giả sử Gemini trả về kết quả trong "candidates" -> "content" -> "parts" -> "text"
+        JsonNode candidates = rootNode.path("candidates");
+        if (candidates.isArray() && candidates.size() > 0) {
+            JsonNode content = candidates.get(0).path("content");
+            JsonNode parts = content.path("parts");
+            if (parts.isArray()) {
+                for (JsonNode part : parts) {
+                    String text = part.path("text").asText(null);
+                    if (text != null) {
+                        // Giả sử text chứa mô tả, cần parse thêm để lấy các đối tượng
+                        AnalysisResult result = new AnalysisResult();
+                        result.setObject_id(UUID.randomUUID().toString());
+                        result.setTitle("Object"); // Có thể cần parse text để lấy title cụ thể
+                        result.setSupercategory("Unknown"); // Điều chỉnh dựa trên phản hồi
+                        result.setCategory("Unknown");
+                        result.setSubcategory("Unknown");
+                        result.setType("Unknown");
+                        result.setScore(0.0); // Gemini có thể trả về confidence score
+                        result.setLength(0.0); // Điều chỉnh nếu có thông tin
+                        result.setClass_id("Unknown");
+                        result.setFighter_classification("N/A");
+                        result.setAnalysis(analysis);
+                        results.add(result);
+                    }
+                }
+            }
+        }
+        return results;
     }
 
     @Override
@@ -150,8 +226,6 @@ public class ImageServiceImpl implements ImageService {
         return response;
     }
 
-
-
     @Override
     public List<ImageResponse> getAllImages() {
         // Tìm tất cả ảnh trong database
@@ -159,9 +233,9 @@ public class ImageServiceImpl implements ImageService {
         List<ImageResponse> lstImgResponse = new ArrayList<>();
         String imageDataBase64;
 
-        log.info("Số ảnh từ database: {}", images.size()); // Debug
+        log.info("Số ảnh từ database: {}", images.size());
         for (var item : images) {
-            log.info("Xử lý ảnh, ID: {}", item.getImage_id()); // Debug
+            log.info("Xử lý ảnh, ID: {}", item.getImage_id());
             try {
                 try (InputStream inputStream = client.getObject(
                         GetObjectArgs.builder()
@@ -178,7 +252,7 @@ public class ImageServiceImpl implements ImageService {
                 log.error("Lỗi khi tải ảnh {} từ MinIO: {}", item.getImage_id(), e.getMessage());
             }
         }
-        log.info("Số ảnh trả về: {}", lstImgResponse.size()); // Debug
+        log.info("Số ảnh trả về: {}", lstImgResponse.size());
         return lstImgResponse;
     }
 }
