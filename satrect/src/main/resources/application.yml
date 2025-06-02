@@ -16,6 +16,13 @@ spring:
 jwt:
   SECRET_KEY: ZklN7dQKtUB/eJHNKevcGXKr9GEh/CYGec9i0ZfkmQFeWUD0npk60wxnhMjS9xxu
 
+gemini:
+  api:
+    key: AIzaSyD3e0R09vHacdMEPXpJLsa6BYKDBdXW1Rs
+    url: "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent"
+
+
+
 minio:
     url: http://localhost:9000
     access-key: minio

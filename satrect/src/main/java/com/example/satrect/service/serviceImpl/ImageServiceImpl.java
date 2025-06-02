@@ -3,10 +3,17 @@ package com.example.satrect.service.serviceImpl;
 import java.io.InputStream;
 import java.time.LocalDateTime;
 
+import io.minio.RestoreObjectArgs;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.RestTemplate;
 import org.springframework.web.multipart.MultipartFile;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -33,6 +40,13 @@ public class ImageServiceImpl implements ImageService {
     private final ImageMapper imageMapper;
     private final MinioConfig minioConfig;
     private final MinioClient client;
+    private final RestTemplate restTemplate;
+
+    @Value("${gemini.api.key}")
+    private String apiKey;
+
+    @Value("${gemini.api.url}")
+    private String apiUrl;
 
     @Override
     public ImageResponse postImage(MultipartFile imagePath, String imageName) {
@@ -49,6 +63,7 @@ public class ImageServiceImpl implements ImageService {
                 .updated_at(LocalDateTime.now())
                 .build();
         try {
+            // Upload lên MinIO
             client.putObject(
                     PutObjectArgs.builder()
                             .bucket(minioConfig.getBucketName())
@@ -58,14 +73,54 @@ public class ImageServiceImpl implements ImageService {
                             .build());
 
             image.setImage_key(imageName);
+
+            // Gửi ảnh lên Gemini để phân tích
+            String geminiResult = analyzeImageWithGemini(imagePath);
+
+            // Lưu kết quả phân tích (ví dụ set vào trường nào đó trong entity nếu cần)
+            image.setStatus("Analyzed");
+            // Bạn có thể thêm trường mới để lưu kết quả phân tích hoặc lưu ở chỗ khác
+            log.info("Gemini phân tích kết quả: {}", geminiResult);
+
         } catch (Exception e) {
-            log.error("Lỗi khi tải ảnh lên MinIO: {}", e.getMessage());
-            throw new RuntimeException("Không thể tải ảnh lên MinIO", e);
+            log.error("Lỗi khi tải ảnh lên MinIO hoặc phân tích Gemini: {}", e.getMessage());
+            throw new RuntimeException("Không thể tải ảnh lên MinIO hoặc phân tích Gemini", e);
         }
 
         imageRepository.save(image);
         log.info("Chi tiết ảnh: {}", image.toString());
         return imageMapper.toImageResponse(image);
+    }
+
+    private String analyzeImageWithGemini(MultipartFile imageFile) {
+        try {
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.MULTIPART_FORM_DATA);
+            headers.set("Authorization", "Bearer " + apiKey);
+
+            // Tạo body request với file Multipart
+            org.springframework.util.LinkedMultiValueMap<String, Object> body = new org.springframework.util.LinkedMultiValueMap<>();
+            // Gửi ảnh dưới dạng file multipart
+            body.add("image", new org.springframework.core.io.ByteArrayResource(imageFile.getBytes()) {
+                @Override
+                public String getFilename() {
+                    return imageFile.getOriginalFilename();
+                }
+            });
+
+            HttpEntity<org.springframework.util.MultiValueMap<String, Object>> requestEntity = new HttpEntity<>(body, headers);
+
+            ResponseEntity<String> response = restTemplate.postForEntity(apiUrl, requestEntity, String.class);
+
+            if (response.getStatusCode().is2xxSuccessful()) {
+                return response.getBody(); // Trả về kết quả phân tích dưới dạng JSON string hoặc tuỳ API
+            } else {
+                throw new RuntimeException("Lỗi phản hồi từ Gemini: " + response.getStatusCode());
+            }
+        } catch (Exception e) {
+            log.error("Lỗi khi gọi API Gemini: {}", e.getMessage());
+            throw new RuntimeException("Không thể phân tích ảnh với Gemini", e);
+        }
     }
 
     @Override
