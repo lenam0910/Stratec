@@ -128,7 +128,10 @@ public class ImageServiceImpl implements ImageService {
                             "    {" +
                             "      \"parts\": [" +
                             "        {" +
-                            "          \"text\": \"Describe this image and identify objects in it\"" +
+                            "          \"text\": \"Describe this image and identify objects in it with information like: " +
+                            "                       title,supercategory,category,subcategory,type,score,length,class_id,fighter_classification, each field" +
+                            "                       I want you to answer my question as briefly as possible and when you can not answer" +
+                            "                       you can set it is 'empty' you answer like format Title:Portrait of a young man.\"" +
                             "        }," +
                             "        {" +
                             "          \"inlineData\": {" +
@@ -178,19 +181,59 @@ public class ImageServiceImpl implements ImageService {
                 for (JsonNode part : parts) {
                     String text = part.path("text").asText(null);
                     if (text != null) {
-                        // Giả sử text chứa mô tả, cần parse thêm để lấy các đối tượng
                         AnalysisResult result = new AnalysisResult();
                         result.setObject_id(UUID.randomUUID().toString());
-                        result.setTitle(text); // Có thể cần parse text để lấy title cụ thể
-                        result.setSupercategory("Unknown"); // Điều chỉnh dựa trên phản hồi
-                        result.setCategory("Unknown");
-                        result.setSubcategory("Unknown");
-                        result.setType("Unknown");
-                        result.setScore(0.0); // Gemini có thể trả về confidence score
-                        result.setLength(0.0); // Điều chỉnh nếu có thông tin
-                        result.setClass_id("Unknown");
-                        result.setFighter_classification("N/A");
                         result.setAnalysis(analysis);
+
+                        // Split text thành các dòng và parse từng cặp key-value
+                        String[] lines = text.split("\n");
+                        for (String line : lines) {
+                            String[] keyValue = line.split(":", 2); // Chia thành key và value, giới hạn 2 phần
+                            if (keyValue.length == 2) {
+                                String key = keyValue[0].trim();
+                                String value = keyValue[1].trim();
+                                switch (key) {
+                                    case "Title":
+                                        result.setTitle(value);
+                                        break;
+                                    case "Supercategory":
+                                        result.setSupercategory(value);
+                                        break;
+                                    case "Category":
+                                        result.setCategory(value);
+                                        break;
+                                    case "Subcategory":
+                                        result.setSubcategory(value);
+                                        break;
+                                    case "Type":
+                                        result.setType(value);
+                                        break;
+                                    case "Score":
+                                        try {
+                                            result.setScore(value.equals("empty") ? 0.0 : Double.parseDouble(value));
+                                        } catch (NumberFormatException e) {
+                                            result.setScore(0.0);
+                                        }
+                                        break;
+                                    case "Length":
+                                        try {
+                                            result.setLength(value.equals("empty") ? 0.0 : Double.parseDouble(value));
+                                        } catch (NumberFormatException e) {
+                                            result.setLength(0.0);
+                                        }
+                                        break;
+                                    case "Class_id":
+                                        result.setClass_id(value.equals("empty") ? "Unknown" : value);
+                                        break;
+                                    case "Fighter_classification":
+                                        result.setFighter_classification(value.equals("empty") ? "N/A" : value);
+                                        break;
+                                    default:
+                                        // Bỏ qua các key không xác định
+                                        break;
+                                }
+                            }
+                        }
                         results.add(result);
                     }
                 }

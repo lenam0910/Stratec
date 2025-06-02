@@ -7,7 +7,7 @@ import lombok.NoArgsConstructor;
 import lombok.experimental.FieldDefaults;
 
 @Entity
-@Table(name = "detected_objects")
+@Table(name = "analysis_result")
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
