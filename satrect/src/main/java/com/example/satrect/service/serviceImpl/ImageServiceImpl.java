@@ -181,7 +181,7 @@ public class ImageServiceImpl implements ImageService {
                         // Giả sử text chứa mô tả, cần parse thêm để lấy các đối tượng
                         AnalysisResult result = new AnalysisResult();
                         result.setObject_id(UUID.randomUUID().toString());
-                        result.setTitle("Object"); // Có thể cần parse text để lấy title cụ thể
+                        result.setTitle(text); // Có thể cần parse text để lấy title cụ thể
                         result.setSupercategory("Unknown"); // Điều chỉnh dựa trên phản hồi
                         result.setCategory("Unknown");
                         result.setSubcategory("Unknown");
