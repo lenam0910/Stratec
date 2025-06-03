@@ -7,5 +7,6 @@ public class Notification {
     public static final String UPLOAD_IMAGE_SUCCESS = "Upload image success";
     public static final String GET_IMAGE_SUCCESS = "Get image success";
     public static final String GET_ANALYSIS_SUCCESS = "Get analysis success";
+    public static final String GET_RESULT_SUCCESS = "Get analysis result success";
 
 }

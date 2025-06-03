@@ -23,7 +23,11 @@ public class AnalysisServiceImpl implements AnalysisService {
 
     @Override
     public Analysis getAnalysisById(String id) {
-        return analysisRepository.findById(id).orElse(null);
+        return analysisRepository.findAll().stream()
+                .filter(x -> x.getImage() != null && id != null && x.getImage().getImage_id() != null
+                        && x.getImage().getImage_id().equalsIgnoreCase(id))
+                .findFirst()
+                .orElse(null);
     }
 
 }

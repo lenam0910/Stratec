@@ -93,6 +93,7 @@ public class ImageServiceImpl implements ImageService {
             Analysis analysis = new Analysis();
             analysis.setAnalysis_id(UUID.randomUUID().toString());
             analysis.setImage(image);
+            analysis.setStatus("Processing");
             analysisRepository.save(analysis);
 
             List<AnalysisResult> results = parseGeminiResult(geminiResult, analysis);
@@ -128,10 +129,14 @@ public class ImageServiceImpl implements ImageService {
                             "    {" +
                             "      \"parts\": [" +
                             "        {" +
-                            "          \"text\": \"Describe this image and identify objects in it with information like: " +
-                            "                       title,supercategory,category,subcategory,type,score,length,class_id,fighter_classification, each field" +
-                            "                       I want you to answer my question as briefly as possible and when you can not answer" +
-                            "                       you can set it is 'empty' you answer like format Title:Portrait of a young man.\"" +
+                            "          \"text\": \"Describe this image and identify objects in it with information like: "
+                            +
+                            "                       title,supercategory,category,subcategory,type,score,length,class_id,fighter_classification, each field"
+                            +
+                            "                       I want you to answer my question as briefly as possible and when you can not answer"
+                            +
+                            "                       you can set it is 'empty' you answer like format Title:Portrait of a young man.\""
+                            +
                             "        }," +
                             "        {" +
                             "          \"inlineData\": {" +
@@ -143,8 +148,7 @@ public class ImageServiceImpl implements ImageService {
                             "    }" +
                             "  ]" +
                             "}",
-                    imageFile.getContentType(), base64Image
-            );
+                    imageFile.getContentType(), base64Image);
 
             // Tạo request entity
             HttpEntity<String> requestEntity = new HttpEntity<>(jsonBody, headers);
@@ -172,7 +176,8 @@ public class ImageServiceImpl implements ImageService {
         List<AnalysisResult> results = new ArrayList<>();
         JsonNode rootNode = objectMapper.readTree(geminiResult);
 
-        // Giả sử Gemini trả về kết quả trong "candidates" -> "content" -> "parts" -> "text"
+        // Giả sử Gemini trả về kết quả trong "candidates" -> "content" -> "parts" ->
+        // "text"
         JsonNode candidates = rootNode.path("candidates");
         if (candidates.isArray() && candidates.size() > 0) {
             JsonNode content = candidates.get(0).path("content");
@@ -183,6 +188,8 @@ public class ImageServiceImpl implements ImageService {
                     if (text != null) {
                         AnalysisResult result = new AnalysisResult();
                         result.setObject_id(UUID.randomUUID().toString());
+                        analysis.setStatus("Done");
+                        analysisRepository.save(analysis);
                         result.setAnalysis(analysis);
 
                         // Split text thành các dòng và parse từng cặp key-value
