@@ -23,7 +23,7 @@ function Login({ setPage }) {
 
             // Nếu đăng nhập thành công
             console.log('Đăng nhập thành công:', response.data);
-            setPage('upload'); // Chuyển đến trang upload sau khi đăng nhập
+            setPage('upload');
         } catch (err) {
             // Xử lý lỗi
             console.error('Lỗi đăng nhập:', err);
