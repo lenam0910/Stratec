@@ -1,4 +1,7 @@
 # Cấu hình kết nối PostgreSQL
+server:
+    port: 8888
+
 spring:
     datasource:
         url: jdbc:postgresql://localhost:5432/satrect

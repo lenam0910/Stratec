@@ -1,3 +1,4 @@
+
 services:
   minio:
     image: minio/minio:latest
@@ -14,16 +15,21 @@ services:
       - minio_data:/data
   postgres:
     image: postgres:latest
-    container_name: postgres
+    container_name: postgres-container
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: 123456
       POSTGRES_DB: satrect
+    networks:
+      - my-network-post 
     ports:
       - "5432:5432"
     restart: always
     volumes:
       - postgres_data:/var/lib/postgresql/data
+networks:
+  my-network-post:
+    external: true
 volumes:
   postgres_data:
   minio_data:
