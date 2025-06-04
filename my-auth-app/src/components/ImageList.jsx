@@ -11,7 +11,7 @@ function ImageList({ setPage }) {
             setLoading(true);
             setError('');
             try {
-                const response = await axios.get('http://localhost:8080/img', {
+                const response = await axios.get('http://localhost:8888/img', {
                     withCredentials: true,
                 });
                 const data = response.data;

@@ -11,7 +11,7 @@ function Login({ setPage }) {
         try {
             // Gửi yêu cầu POST đến endpoint /auth/login-cookie của backend
             const response = await axios.post(
-                'http://localhost:8080/auth/login-cookie',
+                'http://localhost:8888/auth/login-cookie',
                 {
                     userName: username,
                     password: password,

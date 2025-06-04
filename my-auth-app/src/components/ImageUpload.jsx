@@ -37,8 +37,8 @@ function ImageUpload({ setPage }) {
         formData.append('imageName', imageName);
 
         try {
-            console.log('Sending request to: http://localhost:8080/img/upload-image');
-            const response = await axios.post('http://localhost:8080/img/upload-image', formData, {
+            console.log('Sending request to: http://localhost:8888/img/upload-image');
+            const response = await axios.post('http://localhost:8888/img/upload-image', formData, {
                 headers: {
                     'Content-Type': 'multipart/form-data',
                 },
@@ -72,7 +72,7 @@ function ImageUpload({ setPage }) {
         setSearchStatus('');
         setSearchedImage('');
         try {
-            const response = await axios.get(`http://localhost:8080/img/${searchImageId}`, {
+            const response = await axios.get(`http://localhost:8888/img/${searchImageId}`, {
                 withCredentials: true,
             });
             const data = response.data;
