@@ -44,7 +44,6 @@ public class AuthServiceImpl implements AuthService {
 
     @Override
     public UserResponse logout(User user) {
-
         throw new UnsupportedOperationException("Unimplemented method 'logout'");
     }
 
