@@ -25,6 +25,7 @@ public class Image {
     String image_key;
     String name;
     String status;
+    // check kkk
     LocalDateTime created_at;
     LocalDateTime updated_at;
 }

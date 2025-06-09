@@ -13,6 +13,8 @@ import com.example.satrect.repository.AnalysisRepository;
 import com.example.satrect.repository.AnalysisResultRepository;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import jakarta.persistence.Transient;
+import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
@@ -55,7 +57,6 @@ public class ImageServiceImpl implements ImageService {
 
     @Value("${gemini.api.url}")
     private String apiUrl;
-
 
 
     @Override
