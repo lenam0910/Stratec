@@ -1,8 +1,8 @@
 pipeline {
     agent any
     tools {
-        maven 'Maven' // Tên Maven trong Global Tool Configuration
-        jdk 'JDK21'   // Tên JDK trong Global Tool Configuration
+        maven 'Maven'
+        jdk 'JDK21'
     }
     stages {
         stage('Checkout') {
@@ -12,28 +12,58 @@ pipeline {
         }
         stage('Build') {
             steps {
-                bat 'mvn clean package'
+                script {
+                    if (isWindows()) {
+                        bat 'mvn clean package'
+                    } else {
+                        sh 'mvn clean package'
+                    }
+                }
             }
         }
         stage('Test') {
             steps {
-                bat 'mvn test'
+                script {
+                    if (isWindows()) {
+                        bat 'mvn test'
+                    } else {
+                        sh 'mvn test'
+                    }
+                }
             }
         }
         stage('Build Docker Image') {
             steps {
-                bat 'docker build -t satrect-app:latest .'
+                script {
+                    if (isWindows()) {
+                        bat 'docker build -t satrect-app:latest .'
+                    } else {
+                        sh 'docker build -t satrect-app:latest .'
+                    }
+                }
             }
         }
         stage('Deploy') {
             steps {
-                // Dừng và xóa container cũ nếu tồn tại
-                bat '''
-                docker ps -q --filter "name=satrect-app" | findstr . > nul && docker stop satrect-app
-                docker ps -a -q --filter "name=satrect-app" | findstr . > nul && docker rm satrect-app
-                '''
-                // Chạy container mới
-                bat 'docker run -d --name satrect-app -p 8081:8080 satrect-app:latest'
+                script {
+                    if (isWindows()) {
+                        bat '''
+                        docker ps -q --filter "name=satrect-app" | findstr . > nul && docker stop satrect-app
+                        docker ps -a -q --filter "name=satrect-app" | findstr . > nul && docker rm satrect-app
+                        docker run -d --name satrect-app -p 8081:8080 satrect-app:latest
+                        '''
+                    } else {
+                        sh '''
+                        if [ -n "$(docker ps -q --filter name=satrect-app)" ]; then
+                            docker stop satrect-app
+                        fi
+                        if [ -n "$(docker ps -a -q --filter name=satrect-app)" ]; then
+                            docker rm satrect-app
+                        fi
+                        docker run -d --name satrect-app -p 8081:8080 satrect-app:latest
+                        '''
+                    }
+                }
             }
         }
     }
@@ -48,4 +78,8 @@ pipeline {
             echo 'Build failed!'
         }
     }
+}
+
+def isWindows() {
+    return env.OS?.toLowerCase()?.contains('windows') || System.getProperty('os.name').toLowerCase().contains('windows')
 }
