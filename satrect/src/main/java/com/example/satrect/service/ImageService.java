@@ -12,7 +12,7 @@ import com.example.satrect.dto.response.ImageResponse;
 import com.example.satrect.entity.Image;
 
 public interface ImageService {
-    @Transactional
+
     ImageResponse postImage(MultipartFile imagePath, String imageName);
 
     ImageResponse getImageById(String imageId);

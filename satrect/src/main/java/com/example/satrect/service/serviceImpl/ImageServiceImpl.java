@@ -1,6 +1,7 @@
 package com.example.satrect.service.serviceImpl;
 
 import java.io.InputStream;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Base64;
 import java.util.List;
@@ -12,9 +13,10 @@ import com.example.satrect.repository.AnalysisRepository;
 import com.example.satrect.repository.AnalysisResultRepository;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.minio.RemoveObjectArgs;
-import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
@@ -55,19 +57,24 @@ public class ImageServiceImpl implements ImageService {
     private String apiUrl;
 
 
-    @Transactional
+
     @Override
-    public ImageResponse postImage(MultipartFile imagePath, String name) {
-        String uniqueImageId = UUID.randomUUID().toString();
-        Image image = new Image();
-        image.setImage_key(uniqueImageId);
-        image.setStatus("Uploaded");
+    public ImageResponse postImage(MultipartFile imagePath, String imageName) {
+        String originalFilename = imagePath.getOriginalFilename();
+        String uniqueImageId = originalFilename + "_" + System.currentTimeMillis();
 
+        log.info("Image ID: {}", uniqueImageId);
+
+        // Tạo entity Image
+        Image image = Image.builder()
+                .image_id(uniqueImageId)
+                .name(originalFilename)
+                .status("Processing")
+                .created_at(LocalDateTime.now())
+                .updated_at(LocalDateTime.now())
+                .build();
         try {
-            // 1️⃣ Lưu DB trước, để có image_id (nếu cần)
-            imageRepository.save(image);
-
-            // 2️⃣ Upload lên MinIO
+            // Upload lên MinIO
             client.putObject(
                     PutObjectArgs.builder()
                             .bucket(minioConfig.getBucketName())
@@ -76,10 +83,15 @@ public class ImageServiceImpl implements ImageService {
                             .contentType(imagePath.getContentType())
                             .build());
 
-            // 3️⃣ Gửi ảnh lên Gemini
+            image.setImage_key(imageName);
+
+            // Lưu image vào database trước để có image_id
+            imageRepository.save(image);
+
+            // Gửi ảnh lên Gemini để phân tích
             String geminiResult = analyzeImageWithGemini(imagePath);
 
-            // 4️⃣ Lưu phân tích
+            // Parse và lưu kết quả phân tích
             Analysis analysis = new Analysis();
             analysis.setAnalysis_id(UUID.randomUUID().toString());
             analysis.setImage(image);
@@ -89,32 +101,19 @@ public class ImageServiceImpl implements ImageService {
             List<AnalysisResult> results = parseGeminiResult(geminiResult, analysis);
             analysisResultRepository.saveAll(results);
 
-            // 5️⃣ Cập nhật trạng thái cuối cùng
             image.setStatus("Analyzed");
             imageRepository.save(image);
 
-            log.info("Phân tích hoàn thành!");
+            log.info("Gemini phân tích kết quả: {}", geminiResult);
 
         } catch (Exception e) {
-            log.error("Lỗi trong quá trình upload hoặc phân tích: {}", e.getMessage());
-
-            // Nếu đã upload MinIO thành công, nhưng DB lỗi, xóa file trong MinIO để tránh rác
-            try {
-                client.removeObject(RemoveObjectArgs.builder()
-                        .bucket(minioConfig.getBucketName())
-                        .object(uniqueImageId)
-                        .build());
-                log.info("Đã rollback MinIO, xóa ảnh rác: {}", uniqueImageId);
-            } catch (Exception ex) {
-                log.error("Lỗi khi rollback MinIO: {}", ex.getMessage());
-            }
-
-            // Ném lỗi ra ngoài để transaction DB rollback
-            throw new RuntimeException("Lỗi trong quá trình upload hoặc phân tích", e);
+            log.error("Lỗi khi tải ảnh lên MinIO hoặc phân tích Gemini: {}", e.getMessage());
+            throw new RuntimeException("Không thể tải ảnh lên MinIO hoặc phân tích Gemini", e);
         }
+
+        log.info("Chi tiết ảnh: {}", image.toString());
         return imageMapper.toImageResponse(image);
     }
-
 
     private String analyzeImageWithGemini(MultipartFile imageFile) {
         try {
