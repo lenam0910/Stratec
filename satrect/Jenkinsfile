@@ -10,23 +10,36 @@ pipeline {
                 git url: 'https://github.com/lenam0910/Stratec.git', branch: 'main'
             }
         }
+        stage('Debug Checkout') {
+            steps {
+                sh 'ls -la'
+                sh 'find . -name pom.xml || echo "pom.xml not found"'
+                sh 'find . -name Dockerfile || echo "Dockerfile not found"'
+            }
+        }
         stage('Build') {
             steps {
-                withMaven(maven: 'Maven') {
-                    sh 'mvn clean package'
+                dir('satrect') {
+                    withMaven(maven: 'Maven') {
+                        sh 'mvn clean package'
+                    }
                 }
             }
         }
         stage('Test') {
             steps {
-                withMaven(maven: 'Maven') {
-                    sh 'mvn test'
+                dir('satrect') {
+                    withMaven(maven: 'Maven') {
+                        sh 'mvn test'
+                    }
                 }
             }
         }
         stage('Build Docker Image') {
             steps {
-                sh 'docker build -t satrect-app:latest .'
+                dir('satrect') {
+                    sh 'docker build -t satrect-app:latest .'
+                }
             }
         }
         stage('Deploy') {
