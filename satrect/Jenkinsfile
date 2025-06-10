@@ -40,14 +40,7 @@ pipeline {
                 echo 'Tests skipped during build'
             }
         }
-        stage('Initialize') {
-            environment {
-                PATH = "${tool 'myDocker'}/bin:${env.PATH}"
-            }
-            steps {
-                echo "PATH is: ${env.PATH}"
-            }
-        }
+
         stage('Build Docker Image') {
             steps {
                 dir('satrect') {
