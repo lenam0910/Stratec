@@ -3,11 +3,12 @@ pipeline {
     tools {
         maven 'Maven'
         jdk 'JDK21'
+        docker 'Docker'
     }
     stages {
         stage('Checkout') {
             steps {
-                git url: 'https://github.com/lenam0910/Stratec.git', branch: 'main'
+                checkout scm
             }
         }
         stage('Debug Checkout') {
@@ -44,6 +45,17 @@ pipeline {
             steps {
                 dir('satrect') {
                     sh 'docker build -t satrect-app:latest .'
+                }
+            }
+        }
+        stage('Push Docker Image') {
+            steps {
+                withCredentials([usernamePassword(credentialsId: 'docker-hub-credentials', usernameVariable: 'lenam0910', passwordVariable: 'hnam09102004')]) {
+                    sh '''
+                    echo $hnam09102004 | docker login -u $lenam0910 --password-stdin
+                    docker tag satrect-app:latest $lenam0910/satrect-app:latest
+                    docker push $lenam0910/satrect-app:latest
+                    '''
                 }
             }
         }
