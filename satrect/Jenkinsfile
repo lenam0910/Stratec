@@ -12,58 +12,34 @@ pipeline {
         }
         stage('Build') {
             steps {
-                script {
-                    if (isWindows()) {
-                        bat 'mvn clean package'
-                    } else {
-                        sh 'mvn clean package'
-                    }
+                withMaven(maven: 'Maven') {
+                    sh 'mvn clean package'
                 }
             }
         }
         stage('Test') {
             steps {
-                script {
-                    if (isWindows()) {
-                        bat 'mvn test'
-                    } else {
-                        sh 'mvn test'
-                    }
+                withMaven(maven: 'Maven') {
+                    sh 'mvn test'
                 }
             }
         }
         stage('Build Docker Image') {
             steps {
-                script {
-                    if (isWindows()) {
-                        bat 'docker build -t satrect-app:latest .'
-                    } else {
-                        sh 'docker build -t satrect-app:latest .'
-                    }
-                }
+                sh 'docker build -t satrect-app:latest .'
             }
         }
         stage('Deploy') {
             steps {
-                script {
-                    if (isWindows()) {
-                        bat '''
-                        docker ps -q --filter "name=satrect-app" | findstr . > nul && docker stop satrect-app
-                        docker ps -a -q --filter "name=satrect-app" | findstr . > nul && docker rm satrect-app
-                        docker run -d --name satrect-app -p 8081:8080 satrect-app:latest
-                        '''
-                    } else {
-                        sh '''
-                        if [ -n "$(docker ps -q --filter name=satrect-app)" ]; then
-                            docker stop satrect-app
-                        fi
-                        if [ -n "$(docker ps -a -q --filter name=satrect-app)" ]; then
-                            docker rm satrect-app
-                        fi
-                        docker run -d --name satrect-app -p 8081:8080 satrect-app:latest
-                        '''
-                    }
-                }
+                sh '''
+                if [ -n "$(docker ps -q --filter name=satrect-app)" ]; then
+                    docker stop satrect-app
+                fi
+                if [ -n "$(docker ps -a -q --filter name=satrect-app)" ]; then
+                    docker rm satrect-app
+                fi
+                docker run -d --name satrect-app -p 8081:8080 satrect-app:latest
+                '''
             }
         }
     }
@@ -78,8 +54,4 @@ pipeline {
             echo 'Build failed!'
         }
     }
-}
-
-def isWindows() {
-    return env.OS?.toLowerCase()?.contains('windows') ?: false
 }
