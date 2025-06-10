@@ -4,7 +4,7 @@ server:
 
 spring:
     datasource:
-        url: jdbc:postgresql://localhost:5432/satrect
+        url: jdbc:postgresql://18.183.3.126:5432/satrect
         username: postgres
         password: 123456
         driver-class-name: org.postgresql.Driver
@@ -27,7 +27,7 @@ gemini:
 
 
 minio:
-    url: http://localhost:9000
+    url: http://18.183.3.126:9000
     access-key: minio
     secret-key: minio123
     bucket: image-stratec
