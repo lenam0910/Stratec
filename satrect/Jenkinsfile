@@ -1,0 +1,51 @@
+pipeline {
+    agent any
+    tools {
+        maven 'Maven' // Tên Maven trong Global Tool Configuration
+        jdk 'JDK21'   // Tên JDK trong Global Tool Configuration
+    }
+    stages {
+        stage('Checkout') {
+            steps {
+                git url: '<your-repo-url>', branch: 'main'
+            }
+        }
+        stage('Build') {
+            steps {
+                bat 'mvn clean package'
+            }
+        }
+        stage('Test') {
+            steps {
+                bat 'mvn test'
+            }
+        }
+        stage('Build Docker Image') {
+            steps {
+                bat 'docker build -t satrect-app:latest .'
+            }
+        }
+        stage('Deploy') {
+            steps {
+                // Dừng và xóa container cũ nếu tồn tại
+                bat '''
+                docker ps -q --filter "name=satrect-app" | findstr . > nul && docker stop satrect-app
+                docker ps -a -q --filter "name=satrect-app" | findstr . > nul && docker rm satrect-app
+                '''
+                // Chạy container mới
+                bat 'docker run -d --name satrect-app -p 8081:8080 satrect-app:latest'
+            }
+        }
+    }
+    post {
+        always {
+            echo 'Pipeline completed!'
+        }
+        success {
+            echo 'Build and deployment successful!'
+        }
+        failure {
+            echo 'Build failed!'
+        }
+    }
+}
