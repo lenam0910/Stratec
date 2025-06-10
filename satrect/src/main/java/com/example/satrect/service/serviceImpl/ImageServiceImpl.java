@@ -34,6 +34,8 @@ import com.example.satrect.repository.ImageRepository;
 import com.example.satrect.service.ImageService;
 import io.minio.MinioClient;
 import io.minio.PutObjectArgs;
+import io.minio.RemoveObjectArgs;
+import jakarta.transaction.Transactional;
 import io.minio.GetObjectArgs;
 
 @Service
@@ -56,9 +58,8 @@ public class ImageServiceImpl implements ImageService {
     @Value("${gemini.api.url}")
     private String apiUrl;
 
-
-
     @Override
+    @Transactional(rollbackOn = Exception.class)
     public ImageResponse postImage(MultipartFile imagePath, String imageName) {
         String originalFilename = imagePath.getOriginalFilename();
         String uniqueImageId = originalFilename + "_" + System.currentTimeMillis();
@@ -107,8 +108,17 @@ public class ImageServiceImpl implements ImageService {
             log.info("Gemini phân tích kết quả: {}", geminiResult);
 
         } catch (Exception e) {
-            log.error("Lỗi khi tải ảnh lên MinIO hoặc phân tích Gemini: {}", e.getMessage());
-            throw new RuntimeException("Không thể tải ảnh lên MinIO hoặc phân tích Gemini", e);
+            try {
+                client.removeObject(
+                        RemoveObjectArgs.builder()
+                                .bucket(minioConfig.getBucketName())
+                                .object(uniqueImageId)
+                                .build());
+            } catch (Exception minioEx) {
+                log.error("Lỗi khi xóa ảnh khỏi MinIO: {}", minioEx.getMessage());
+            }
+            log.error("Lỗi trong postImage: {}", e.getMessage());
+            throw new RuntimeException("Không thể xử lý ảnh", e);
         }
 
         log.info("Chi tiết ảnh: {}", image.toString());
