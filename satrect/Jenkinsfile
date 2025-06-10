@@ -81,5 +81,5 @@ pipeline {
 }
 
 def isWindows() {
-    return env.OS?.toLowerCase()?.contains('windows') || System.getProperty('os.name').toLowerCase().contains('windows')
+    return env.OS?.toLowerCase()?.contains('windows') ?: false
 }
