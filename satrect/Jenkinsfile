@@ -3,7 +3,7 @@ pipeline {
     tools {
         maven 'Maven'
         jdk 'JDK21'
-        docker 'latest'
+        dockerTool 'latest'
     }
     stages {
         stage('Checkout') {
