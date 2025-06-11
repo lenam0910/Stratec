@@ -10,22 +10,6 @@ pipeline {
                 git url: 'https://github.com/lenam0910/Stratec.git', credentialsId: 'github-lenam0910', branch: 'main'
             }
         }
-        stage('Debug Checkout') {
-            steps {
-                sh 'ls -la'
-                sh 'find . -name pom.xml || echo "pom.xml not found"'
-                sh 'find . -name Dockerfile || echo "Dockerfile not found"'
-            }
-        }
-        stage('Debug Maven') {
-            steps {
-                dir('satrect') {
-                    withMaven(maven: 'Maven') {
-                        sh 'mvn --version'
-                    }
-                }
-            }
-        }
         stage('Build') {
             steps {
                 dir('satrect') {
