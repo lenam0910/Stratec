@@ -17,13 +17,12 @@ pipeline {
                 sh 'find . -name Dockerfile || echo "Dockerfile not found"'
             }
         }
-        stage('Debug Maven') {
+        stage('Debug Environment') {
             steps {
-                dir('satrect') {
-                    withMaven(maven: 'Maven') {
-                        sh 'mvn --version'
-                    }
-                }
+                sh 'docker --version'
+                sh 'docker info'
+                sh 'mvn --version'
+                sh 'java -version'
             }
         }
         stage('Build') {
@@ -40,12 +39,10 @@ pipeline {
                 echo 'Tests skipped during build'
             }
         }
-
         stage('Build Docker Image') {
             steps {
                 dir('satrect') {
                     script {
-                        // Sử dụng Docker Pipeline plugin
                         def dockerImage = docker.build('satrect-app:latest')
                     }
                 }
@@ -62,16 +59,11 @@ pipeline {
                 }
             }
         }
-
         stage('Deploy') {
             steps {
                 sh '''
-                if [ -n "$(docker ps -q --filter name=satrect-app)" ]; then
-                    docker stop satrect-app
-                fi
-                if [ -n "$(docker ps -a -q --filter name=satrect-app)" ]; then
-                    docker rm satrect-app
-                fi
+                docker stop satrect-app || true
+                docker rm satrect-app || true
                 docker run -d --name satrect-app -p 8081:8080 satrect-app:latest
                 '''
             }
